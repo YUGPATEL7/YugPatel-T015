@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Page Browser AI Model</title>
+    
+    <!-- Import TensorFlow.js via Google CDN -->
+    <script src="https://jsdelivr.net"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --background: #f3f4f6;
+            --card: #ffffff;
+            --text: #1f2937;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            max-width: 450px;
+            width: 100%;
+        }
+        h2 { margin-top: 0; color: #111827; }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            margin-top: 5px;
+        }
+        .status-box {
+            background: #f9fafb;
+            padding: 15px;
+            border-left: 4px solid var(--primary);
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        .result { font-weight: bold; color: var(--primary); font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🧠 Browser-Based AI Model</h2>
+    <p>This neural network learns the pattern: <strong>Y = 2X - 1</strong></p>
+    
+    <div class="status-box">
+        <strong>Status:</strong> <span id="status">Ready to train</span><br>
+        <strong>Loss:</strong> <span id="loss">N/A</span>
+    </div>
+
+    <button id="trainBtn" onclick="trainModel()">1. Train Model</button>
+
+    <div style="margin-top: 20px;">
+        <label for="inputX"><strong>2. Predict Y for a custom X value:</strong></label>
+        <input type="number" id="inputX" value="10" disabled>
+        <button id="predictBtn" onclick="predict()" disabled>Predict Outcome</button>
+    </div>
+
+    <p style="margin-top: 20px;">Prediction Result: <span id="result" class="result">-</span></p>
+</div>
+
+<script>
+    let model;
+
+    // 1. Initialize a simple sequential neural network
+    async function initModel() {
+        model = tf.sequential();
+        // Add one dense layer with 1 unit (neuron) and 1 input shape
+        model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+        // Compile using Mean Squared Error loss and Stochastic Gradient Descent optimizer
+        model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+    }
+
+    // 2. Train the model with sample data matching: Y = 2X - 1
+    async function trainModel() {
+        const trainBtn = document.getElementById('trainBtn');
+        const statusText = document.getElementById('status');
+        const lossText = document.getElementById('loss');
+        
+        trainBtn.disabled = true;
+        statusText.innerText = "Training network... Please wait.";
+
+        // Provide historical X and Y coordinates
+        const xs = tf.tensor2d([-1, 0, 1, 2, 3, 4], [6, 1]);
+        const ys = tf.tensor2d([-3, -1, 1, 3, 5, 7], [6, 1]);
+
+        // Run training loop (epochs)
+        await model.fit(xs, ys, {
+            epochs: 250,
+            callbacks: {
+                onEpochEnd: (epoch, logs) => {
+                    lossText.innerText = logs.loss.toFixed(5);
+                }
+            }
+        });
+
+        statusText.innerText = "Training complete!";
+        document.getElementById('inputX').disabled = false;
+        document.getElementById('predictBtn').disabled = false;
+    }
+
+    // 3. Make predictions using the trained layer
+    function predict() {
+        const userInputValue = parseFloat(document.getElementById('inputX').value);
+        
+        // Wrap input in a tensor, feed it forward, and unpack the output
+        const output = model.predict(tf.tensor2d([userInputValue], [1, 1]));
+        const resultValue = output.dataSync()[0];
+
+        document.getElementById('result').innerText = resultValue.toFixed(2);
+    }
+
+    // Prepare model core on page initialization
+    initModel();
+</script>
+
+</body>
+</html>
