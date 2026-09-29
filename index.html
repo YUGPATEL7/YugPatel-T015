@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini AI Sentiment Model</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    font-family: Inter, Arial, sans-serif;
+    background: radial-gradient(circle at top, #243b70, #0b1020 55%);
+    color: #eef2ff; padding: 24px;
+  }
+  .card {
+    width: min(680px, 100%); padding: 32px; border-radius: 24px;
+    background: rgba(17, 24, 39, .88); border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 24px 70px rgba(0,0,0,.35); backdrop-filter: blur(12px);
+  }
+  .badge { display:inline-block; padding:6px 10px; border-radius:999px;
+    background:#1d4ed8; font-size:12px; font-weight:700; letter-spacing:.4px; }
+  h1 { margin:14px 0 8px; font-size:clamp(30px,5vw,48px); }
+  .sub { color:#aab4cf; line-height:1.6; margin-bottom:24px; }
+  textarea {
+    width:100%; min-height:150px; resize:vertical; padding:16px;
+    border-radius:16px; border:1px solid #334155; background:#0f172a;
+    color:#fff; font-size:16px; outline:none;
+  }
+  textarea:focus { border-color:#60a5fa; }
+  button {
+    margin-top:14px; width:100%; padding:14px 18px; border:0; border-radius:14px;
+    background:#3b82f6; color:white; font-size:16px; font-weight:800; cursor:pointer;
+  }
+  button:hover { background:#2563eb; }
+  .result { margin-top:22px; padding:20px; border-radius:16px; background:#111827; display:none; }
+  .label { font-size:28px; font-weight:800; margin-bottom:6px; }
+  .confidence { color:#9ca3af; }
+  .bar { height:10px; margin-top:14px; border-radius:99px; background:#263244; overflow:hidden; }
+  .fill { height:100%; width:0%; background:#60a5fa; transition:width .4s ease; }
+  .note { margin-top:18px; font-size:13px; color:#7f8aa3; }
+</style>
+</head>
+<body>
+<main class="card">
+  <span class="badge">BROWSER AI • NO SERVER REQUIRED</span>
+  <h1>Mini AI Sentiment Model</h1>
+  <p class="sub">Type a sentence and the page predicts whether the sentiment is positive, negative, or neutral.</p>
+
+  <textarea id="text" placeholder="Example: I really enjoyed this project!"></textarea>
+  <button id="predict">Analyze Sentiment</button>
+
+  <section class="result" id="result">
+    <div class="label" id="label">—</div>
+    <div class="confidence" id="confidence">Confidence: —</div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+  </section>
+
+  <p class="note">Demo model: a lightweight word-weight scoring model running entirely in JavaScript. It is designed for learning/deployment practice, not production ML.</p>
+</main>
+
+<script>
+const positive = {
+  amazing:3, awesome:3, excellent:3, fantastic:3, great:2, good:2, love:3,
+  loved:3, like:2, liked:2, happy:2, enjoyable:2, enjoy:2, success:2,
+  successful:2, best:3, wonderful:3, perfect:3, helpful:2, easy:1,
+  beautiful:2, brilliant:3, impressive:2, excited:2, win:2, winner:3
+};
+
+const negative = {
+  terrible:3, awful:3, bad:2, hate:3, hated:3, dislike:2, sad:2,
+  boring:2, worst:3, horrible:3, poor:2, difficult:1, failure:3,
+  fail:2, failed:2, angry:2, annoying:2, disappointed:2, useless:3,
+  problem:1, broken:2, slow:1, hard:1
+};
+
+const negations = new Set(["not","never","no","don't","dont","isn't","isnt","wasn't","wasnt"]);
+
+function predictSentiment(text) {
+  const words = text.toLowerCase().match(/[a-z']+/g) || [];
+  let score = 0;
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    let value = positive[word] ?? (negative[word] ? -negative[word] : 0);
+
+    if (value && i > 0 && negations.has(words[i - 1])) value *= -1;
+    score += value;
+  }
+
+  if (!words.length) return { label: "Neutral", confidence: 0.50 };
+
+  const magnitude = Math.min(Math.abs(score), 8);
+  const confidence = Math.min(0.98, 0.50 + magnitude * 0.055);
+
+  if (score > 0) return { label: "Positive 😊", confidence };
+  if (score < 0) return { label: "Negative 😞", confidence };
+  return { label: "Neutral 😐", confidence: 0.55 };
+}
+
+function analyze() {
+  const text = document.getElementById("text").value.trim();
+  const result = document.getElementById("result");
+  if (!text) {
+    result.style.display = "block";
+    document.getElementById("label").textContent = "Enter some text";
+    document.getElementById("confidence").textContent = "Confidence: —";
+    document.getElementById("fill").style.width = "0%";
+    return;
+  }
+
+  const prediction = predictSentiment(text);
+  result.style.display = "block";
+  document.getElementById("label").textContent = prediction.label;
+  document.getElementById("confidence").textContent =
+    `Confidence: ${(prediction.confidence * 100).toFixed(0)}%`;
+  document.getElementById("fill").style.width =
+    `${prediction.confidence * 100}%`;
+}
+
+document.getElementById("predict").addEventListener("click", analyze);
+document.getElementById("text").addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key === "Enter") analyze();
+});
+</script>
+</body>
+</html>
